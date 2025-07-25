@@ -11,3 +11,6 @@ Next we make it visible in the viewport
 Then make it editable in real time
 
 That's about the goal.
+
+
+I have no idea if this will run on non UNIX systems because i've done 0 stuff for compatability cause im new to c++ and opengl
