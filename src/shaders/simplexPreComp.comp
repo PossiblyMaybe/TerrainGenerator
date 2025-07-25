@@ -1,0 +1,21 @@
+#version 450 core
+
+
+layout(local_size_x=1,local_size_y=1) in;
+
+layout(binding=1, std430) writeonly buffer simplexCoords{
+	vec2 coords[];
+};
+
+layout(binding=3, std140)uniform waveBlock{
+	float amplitude;	
+	uint wavelength;
+};
+
+const mat2 skew = mat2(0.788675134595,-0.211324865405,-0.211324865405,0.788675134595);
+
+void main(){
+	uint current = gl_WorkGroupID.x+(gl_NumWorkGroups.x*gl_WorkGroupID.y);
+	vec2 pt = gl_WorkGroupID.xy;
+	coords[current] = skew * pt;
+}

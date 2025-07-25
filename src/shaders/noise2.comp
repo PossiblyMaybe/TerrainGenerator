@@ -1,0 +1,64 @@
+#version 450 core
+
+
+layout(local_size_x=1,local_size_y=1) in;
+
+layout(binding=0, std430) buffer gridPts{
+	vec4 pts[]; // 0 = x, 1 = z, 2 = hashValue, 4 = heightValue
+};
+// Formatted that 0,0 is the origin, and there are no negative coordinates for the sake of indexing
+// i.e: (0,0), (1,0), (2,0), ... , (1,1), (2,1), ... (1, n), (2, n), ..., (n,n)
+
+layout(binding=1, std430) readonly buffer simplexCoords{
+	vec2 coords[]; //Simplex coords for each vertex in the grid, matches up via index
+};
+
+layout(binding=3, std140)uniform waveBlock{
+	float amplitude;	
+	uint wavelength;
+};
+
+float falloff(vec3 c, vec2 p){
+	vec2 cp = p-c.xy;
+
+	return c.z*pow(1 - pow(length(cp)/(wavelength*0.815699),2),3);
+
+}
+
+vec2 floorVec2(vec2 v){
+	return vec2(wavelength*floor(v.x/wavelength),wavelength*floor(v.y/wavelength));
+
+}
+
+uint getIndex(vec2 v){
+	return uint((v.y * gl_NumWorkGroups.x) + v.x);
+}
+
+void main(){
+	uint current = gl_WorkGroupID.x+(gl_NumWorkGroups.x*gl_WorkGroupID.y);
+	
+	vec2 floored = floorVec2(gl_WorkGroupID.xy);
+	uint aIndex = getIndex(floored);
+
+	vec2 ap = gl_WorkGroupID.xy - pts[aIndex].xy;
+
+	float x = floored.x + wavelength;
+	float y = floored.y + wavelength;
+	if (x >= gl_NumWorkGroups.x){
+		x-=1;	
+	}
+	if (y >= gl_NumWorkGroups.y){
+		y-=1;
+	}
+	uint bIndex = getIndex(vec2(x,y));
+	uint cIndex = getIndex((ap.x>ap.y) ? vec2(x,floored.y): vec2(floored.x,y));
+
+	vec3 a = vec3(coords[aIndex].xy,pts[aIndex].w);
+	vec3 b = vec3(coords[bIndex].xy,pts[bIndex].w);
+	vec3 c = vec3(coords[cIndex].xy,pts[cIndex].w);
+
+	vec2 ps = coords[current];
+
+	pts[current].z += amplitude*(falloff(a,ps) + falloff(b,ps) + falloff(c, ps));
+
+}

@@ -1,0 +1,21 @@
+Requirements:
+Grid
+Noise
+Shaders
+
+GRID:
+Properties:
+	Resolution - Number of points per row
+	heights - Height of each point
+Methods:
+
+
+
+
+SHADER:
+Properties:
+	std::string - sourcePath - filepath of the sourceCode
+	GLuint program - shader program;
+Methods:
+	Constructor
+	run()	
