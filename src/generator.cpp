@@ -12,40 +12,73 @@
 #include "generator.hpp"
 
 
-Generator::Generator(Shader noise, std::string hashPath, std::string simplexPath, Grid grid, glm::vec2 seed) : noise(noise), grid(grid), seed(seed) {
+Generator::Generator(Shader noise,Grid grid, glm::vec2 seed,
+	             std::string hashPath, std::string simplexPath,
+		     std::string normalPath) : noise(noise), grid(grid), seed(seed) {
+
 	this->simplex = Shader();
 	this->hash = Shader();
-	hash.addShader(hashPath, GL_COMPUTE_SHADER);
-	hash.link();
-	simplex.addShader(simplexPath, GL_COMPUTE_SHADER);
-	simplex.link();
+	this->normal = Shader();
+	this->hash.addShader(hashPath, GL_COMPUTE_SHADER);
+	this->hash.link();
+	this->simplex.addShader(simplexPath, GL_COMPUTE_SHADER);
+	this->simplex.link();
+	this->normal.addShader(normalPath, GL_COMPUTE_SHADER);
+	this->normal.link();
 
-
+	glGenVertexArrays(1,&this->VAO);
 
 	glGenBuffers(1,&this->gridSSBO);
 	glGenBuffers(1,&this->simplexSSBO);
 	glGenBuffers(1,&this->infoUBO);
 	glGenBuffers(1,&this->seedUBO);
+	glGenBuffers(1,&this->gridEBO);
+	glGenBuffers(1,&this->normalSSBO);
 
+	glBindVertexArray(VAO);
+
+	// gridSSBO
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->gridSSBO);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, this->grid.vertices.size()*sizeof(glm::vec4),&this->grid.vertices[0],GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, gridSSBO);
 
+	glVertexAttribPointer(0,4,GL_FLOAT,GL_FALSE,4*sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	
+	// simplexSSBO
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->simplexSSBO);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::vec2)*grid.vertices.size(), nullptr, GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this->simplexSSBO);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
+	// normalSSBO
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->normalSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, this->grid.vertices.size()*sizeof(glm::vec3),nullptr,GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, this->normalSSBO);
+
+	// seedUBO
 	glBindBuffer(GL_UNIFORM_BUFFER, this->seedUBO);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::vec2), &this->seed, GL_STATIC_READ);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 2,this->seedUBO);
 
+	// infoUBO
 	glBindBuffer(GL_UNIFORM_BUFFER, this->infoUBO);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 3, this->infoUBO);
 
 	glBindBuffer(GL_UNIFORM_BUFFER,0);
 
+	// indices EBO
+	
+	std::vector<std::array<uint,3>> indices = this->grid.getTriIndices();
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->gridEBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size()*sizeof(uint)*3, indices.data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
+
+	glBindVertexArray(0);
+
+	//simplex pre-compute
 	simplex.useProgram();
 	glDispatchCompute(this->grid.width,this->grid.width,1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -78,9 +111,9 @@ int Generator::editIteration(uint index, WaveDataType t, waveDataUnion newData){
 }
 
 void Generator::run(){
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT); //Just to make sure no other compute shaders are running when this starts
 
-	noise.useProgram();
+	this->noise.useProgram();
 	
 	for (int i=0;i<this->iterationInfo.size();++i){
 		glBindBuffer(GL_UNIFORM_BUFFER,this->infoUBO);
@@ -90,7 +123,9 @@ void Generator::run(){
 		glDispatchCompute(this->grid.width,this->grid.width,1);	
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);	
 	}
-
+	this->normal.useProgram();
+	glDispatchCompute(this->grid.width,this->grid.width,1);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 void Generator::setSeed(glm::vec2 seed){
@@ -124,3 +159,12 @@ void Generator::writeToPGM(){
 	}
 	outfile.close();	
 }
+
+GLuint Generator::getVAO(){
+	return this->VAO;
+}
+
+void Generator::bindGridEBO(){
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->gridEBO);
+}
+

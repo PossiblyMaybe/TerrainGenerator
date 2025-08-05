@@ -1,3 +1,7 @@
+#include <execinfo.h>
+#include <cstdio>
+#include <csignal>
+
 #include <string>
 #include <array>
 #include <iostream>
@@ -10,6 +14,7 @@
 #include <glm/glm.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/string_cast.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "shader.hpp"
 #include "camera.hpp"
@@ -19,8 +24,19 @@
 
 #define TEXTURE_WIDTH 1024u
 
+
+void handler(int sig){
+	void *array[10];
+	size_t size;
+	size = backtrace(array,10);
+
+	std::cerr << "Error: " << sig << "\n";
+	backtrace_symbols_fd(array,size, STDERR_FILENO);
+	exit(1);
+}
+
 void ErrCallbackGLFW(int, const char * err_str){
-	std::cout << "GLFW_ERR: " << err_str << std::endl;
+	std::cerr << "GLFW_ERR: " << err_str << std::endl;
 }
 
 void framebufferSizeCallback(GLFWwindow * window, int width, int height){
@@ -37,7 +53,14 @@ void processInput(GLFWwindow* window){
 
 
 int main(){
-	//init
+
+	//ERROR HANDLING INCASE I BREAK SHIT
+
+	signal(SIGABRT, handler);
+	signal(SIGSEGV, handler);
+
+
+	//GLFW AND GLAD INIT
 
 	glfwInit();
 	glfwSetErrorCallback(ErrCallbackGLFW);
@@ -63,30 +86,11 @@ int main(){
 
 	glViewport(0,0,800,600);
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
+	framebufferSizeCallback(window,800,600);
 
 
-	//IndexArray
-	
-	std::vector<std::array<int, 3>> indices(TEXTURE_WIDTH*TEXTURE_WIDTH);
-	int toprow = TEXTURE_WIDTH*TEXTURE_WIDTH - TEXTURE_WIDTH;
-	int bottomrow = TEXTURE_WIDTH;
-	std::array<int, 3> triIndex{0,0,0};
-	int index = 0;
-	for(int i=0;i<TEXTURE_WIDTH*TEXTURE_WIDTH;i+=2){
-		triIndex[0] = i;
-		if (i < toprow){
-			triIndex[1] = i+1;
-			triIndex[2] = i+TEXTURE_WIDTH+1;
-			indices[index] = triIndex;
-			++index;
-		} 
-		if (i > bottomrow){
-			triIndex[2] = i+1;
-			triIndex[1] = i-TEXTURE_WIDTH;
-			indices[index] = triIndex;
-			++index;
-		}
-	}
+
+	// SHADERS
 
 	Shader outShader{};
 	outShader.addShader("src/shaders/vertex.vert",GL_VERTEX_SHADER);
@@ -101,38 +105,47 @@ int main(){
 	// GENERATOR
 
 	Grid terrainGrid(TEXTURE_WIDTH);
-	Generator terrainGen(noiseShader, "src/shaders/hash.comp", "src/shaders/simplexPreComp.comp",terrainGrid, glm::vec2(15.2345,24.4));
-	terrainGen.addIteration(waveData{1.0f,1024u});
+	Generator terrainGen(noiseShader, terrainGrid, glm::vec2(15.2345,24.4),
+		             "src/shaders/hash.comp", "src/shaders/simplexPreComp.comp",
+			     "src/shaders/normal.comp");
+	
+	terrainGen.addIteration(waveData{10.0f,1024u});
 	terrainGen.addIteration(waveData{0.7f,512u});
 	terrainGen.addIteration(waveData{0.6f,256u});
-	terrainGen.addIteration(waveData{1.0f,128u});
+	terrainGen.addIteration(waveData{40.0f,128u});
 	terrainGen.addIteration(waveData{0.5f,64u});
 	terrainGen.addIteration(waveData{0.0f,32u});
 	terrainGen.addIteration(waveData{0.0f,16u});
 	terrainGen.addIteration(waveData{0.0f,8u});
 	terrainGen.addIteration(waveData{0.0f,4u});
 	
+	
+	// UNIFORMS
+	
+	glBindVertexArray(terrainGen.getVAO());
+	glEnableVertexAttribArray(0);
 
-	//EBO	
-		
-	GLuint EBO;
-	glGenBuffers(1, &EBO);
+	glm::mat4 viewMatrix = glm::lookAt(glm::vec3(-100,300,-100), glm::vec3(512,0,512),glm::vec3(0,1,0));
+	glm::mat4 projectionMatrix = glm::perspective(glm::radians(90.0f),4.0f/3.0f,0.1f,3000.0f);
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size()*sizeof(indices[0]), indices.data(),GL_DYNAMIC_DRAW);	
+	outShader.useProgram();
+	GLuint viewLoc = glGetUniformLocation(outShader.getProgram(),"view");
+	GLuint projLoc = glGetUniformLocation(outShader.getProgram(),"projection");
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glUniformMatrix4fv(viewLoc,1,GL_FALSE, glm::value_ptr(viewMatrix));
+	glUniformMatrix4fv(projLoc,1,GL_FALSE, glm::value_ptr(projectionMatrix));
 
-
-	// CAMERA	
-
-	Camera cam(glm::vec3(500.0f,300.0f,300.0f),
-		   glm::vec3(0.0f,1.0f,0.0f),-0.3f,0.0f,0.0f,
-		   0.1,1.0);	
-	glm::mat4 view = cam.createViewMatrix();		
-	glm::mat4 projectionMatrix = glm::perspective(M_PIf, 800.0f/600.0f, 0.1f, 100.0f);
+	GLuint lightLoc = glGetUniformLocation(outShader.getProgram(),"lightColour");
+	GLuint lightPosLoc = glGetUniformLocation(outShader.getProgram(),"lightPos");
+	glUniform3f(lightLoc,1.0f,1.0f,1.0f);
+	glUniform3f(lightPosLoc,1024.0f,1024.0f,0.0f);
+	
+	
+	//Get heights
 	terrainGen.runHashCalc();
 	terrainGen.run();
+	
+	//PGM heightmap
 	terrainGen.writeToPGM();
 
 	//LOOP
@@ -142,11 +155,11 @@ int main(){
 
 		glClearColor(0.0f,0.0f,0.0f,1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);	
-	
+
 		outShader.useProgram();
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-		glDrawElements(GL_TRIANGLES,indices.size(), GL_UNSIGNED_INT, 0);
-	
+		terrainGen.bindGridEBO();
+		glDrawElements(GL_TRIANGLES,terrainGrid.getIndexCount(), GL_UNSIGNED_INT, 0);
+		
 		glfwSwapBuffers(window);
       
 		glfwPollEvents();

@@ -3,9 +3,18 @@ layout(binding = 0, std430) readonly buffer gridPts{
 	vec4 pts[];
 };
 
-layout(location = 0) uniform mat4 view;
-layout(location = 1) uniform mat4 projection;
+layout(binding = 5, std430) readonly buffer normalsSSBO{
+	vec3 normals[];
+};
+
+out vec3 vPos;
+out vec3 vNormal;
+
+uniform mat4 view;
+uniform mat4 projection;
 
 void main(){
-	gl_Position = projection * view * vec4(pts[gl_VertexID].xwz, 1.0f); 
+	gl_Position = projection * view * vec4(pts[gl_VertexID].xzy, 1.0f); 
+	vPos = pts[gl_VertexID].xzy;
+	vNormal = normals[gl_VertexID];
 }

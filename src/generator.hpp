@@ -33,11 +33,11 @@ class Generator{
 		Grid grid;
 		glm::vec2 seed;
 		std::vector<waveData> iterationInfo{};
+		GLuint gridSSBO, simplexSSBO, infoUBO, seedUBO, gridEBO, VAO, normalSSBO;
+		Shader noise, simplex, hash, normal;
+
 	public:
-		GLuint gridSSBO, simplexSSBO, infoUBO, seedUBO;
-		Shader noise, simplex, hash;
-		//public:
-		Generator(Shader noise,std::string hashPath, std::string simplexPath, Grid grid, glm::vec2 seed);
+		Generator(Shader noise, Grid grid, glm::vec2 seed, std::string hashPath, std::string simplexPath, std::string normalPath);
 		void addIteration(waveData newinfo);
 		void removeIteration(uint index);
 		int editIteration(uint index, WaveDataType t, waveDataUnion newData);
@@ -45,8 +45,9 @@ class Generator{
 		void runHashCalc();
 		void setSeed(glm::vec2 seed);
 		GLuint getGridSSBO();
+		GLuint getVAO();
 		void writeToPGM();
-	
+		void bindGridEBO();	
 };
 
 
