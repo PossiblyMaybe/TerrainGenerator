@@ -1,16 +1,7 @@
 # TerrainGenerator
 
-This is currently a WIP, im just putting everything up here so far because I managed to get noise working
+This is does actually function now, could do some stuff with making the terrain editable at runtime, but I dislike frontend
 
-Essentially right now this is just a compute shader implementation of 2D simplex noise.
+I got halfway through lighting and stopped cause I don't want to implement shadows, and I want this to run quickly so im not adding ray tracing.
 
-Right now all it can do is output to a ppm
-
-Next we make it visible in the viewport
-
-Then make it editable in real time
-
-That's about the goal.
-
-
-I have no idea if this will run on non UNIX systems because i've done 0 stuff for compatability cause im new to c++ and opengl
+For the very few people who come across this and wanna actually compile it and whatnot, the libglad file is just the glad core from the glad.dav1d.de website, compiled for x86_64, actually nothing else in it, I deleted the glad.c after I compiled the static library.
