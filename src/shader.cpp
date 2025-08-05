@@ -72,3 +72,6 @@ int Shader::link(){
 	return 0;
 }
 
+GLuint Shader::getProgram(){
+	return this->program;
+}

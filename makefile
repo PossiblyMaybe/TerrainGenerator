@@ -7,9 +7,9 @@ OBJS = ${SRCS:.cpp=.o}
 
 
 	
-${TARGET}: ${OBJS}
+${TARGET}: ${OBJS} #src/glad.o
 	@echo 'Compiling $@'
-	@g++ -o $@ $^  -lGL -lglfw -lGLU -Llib -lglad	
+	@g++ -g -rdynamic -o $@ $^  -lGL -lglfw -lGLU -Llib -lglad	
 	@echo 'Compiled'
 	@echo 'Cleaning'
 	@rm src/*.o
@@ -19,3 +19,7 @@ ${TARGET}: ${OBJS}
 %.o: %.cpp
 	@echo 'Compiling $@'
 	@g++ -c $^ -o $@  
+
+#src/glad.o: ${SRC_DIR}/glad.c
+#	@echo 'Compiling $@'
+#	@gcc -c $^ -o $@

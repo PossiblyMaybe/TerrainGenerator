@@ -17,6 +17,7 @@ public:
 	int link();	
 	Shader();
 	void useProgram();
+	GLuint getProgram();
 };
 
 
