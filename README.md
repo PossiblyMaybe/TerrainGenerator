@@ -1,5 +1,7 @@
 # TerrainGenerator
 
+Small terrain generator I made, probably not very good one at that
+
 This is does actually function now, could do some stuff with making the terrain editable at runtime, but I dislike frontend
 
 I got halfway through lighting and stopped cause I don't want to implement shadows, and I want this to run quickly so im not adding ray tracing.
