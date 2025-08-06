@@ -10,11 +10,10 @@ layout(binding = 5, std430) readonly buffer normalsSSBO{
 out vec3 vPos;
 out vec3 vNormal;
 
-uniform mat4 view;
-uniform mat4 projection;
+uniform mat4 pvMatrix;
 
 void main(){
-	gl_Position = projection * view * vec4(pts[gl_VertexID].xzy, 1.0f); 
+	gl_Position = pvMatrix * vec4(pts[gl_VertexID].xzy, 1.0f); 
 	vPos = pts[gl_VertexID].xzy;
 	vNormal = normals[gl_VertexID];
 }
