@@ -17,10 +17,9 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "shader.hpp"
-#include "camera.hpp"
 #include "grid.hpp"
 #include "generator.hpp"
-
+#include "camera.hpp"
 
 #define TEXTURE_WIDTH 1024u
 
@@ -84,9 +83,8 @@ int main(){
 	}
 
 
-	glViewport(0,0,800,600);
+	glViewport(0,0,1000,750);
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
-	framebufferSizeCallback(window,800,600);
 
 
 
@@ -109,11 +107,11 @@ int main(){
 		             "src/shaders/hash.comp", "src/shaders/simplexPreComp.comp",
 			     "src/shaders/normal.comp");
 	
-	terrainGen.addIteration(waveData{10.0f,1024u});
-	terrainGen.addIteration(waveData{0.7f,512u});
+	terrainGen.addIteration(waveData{20.0f,1024u});
+	terrainGen.addIteration(waveData{14.0f,512u});
 	terrainGen.addIteration(waveData{0.6f,256u});
-	terrainGen.addIteration(waveData{40.0f,128u});
-	terrainGen.addIteration(waveData{0.5f,64u});
+	terrainGen.addIteration(waveData{30.0f,128u});
+	terrainGen.addIteration(waveData{15.0f,64u});
 	terrainGen.addIteration(waveData{0.0f,32u});
 	terrainGen.addIteration(waveData{0.0f,16u});
 	terrainGen.addIteration(waveData{0.0f,8u});
@@ -125,15 +123,9 @@ int main(){
 	glBindVertexArray(terrainGen.getVAO());
 	glEnableVertexAttribArray(0);
 
-	glm::mat4 viewMatrix = glm::lookAt(glm::vec3(-100,300,-100), glm::vec3(512,0,512),glm::vec3(0,1,0));
-	glm::mat4 projectionMatrix = glm::perspective(glm::radians(90.0f),4.0f/3.0f,0.1f,3000.0f);
 
-	outShader.useProgram();
-	GLuint viewLoc = glGetUniformLocation(outShader.getProgram(),"view");
-	GLuint projLoc = glGetUniformLocation(outShader.getProgram(),"projection");
-
-	glUniformMatrix4fv(viewLoc,1,GL_FALSE, glm::value_ptr(viewMatrix));
-	glUniformMatrix4fv(projLoc,1,GL_FALSE, glm::value_ptr(projectionMatrix));
+	Camera cam(glm::vec3(-50,500,-50), glm::vec3(512,0,512), glm::vec3(0,1,0));
+	cam.setPVmatrixUniform(outShader,"pvMatrix");
 
 	GLuint lightLoc = glGetUniformLocation(outShader.getProgram(),"lightColour");
 	GLuint lightPosLoc = glGetUniformLocation(outShader.getProgram(),"lightPos");
