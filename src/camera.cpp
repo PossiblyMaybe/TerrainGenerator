@@ -1,6 +1,5 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <cmath>
 #include <string>
 #include "camera.hpp"
 #include "shader.hpp"

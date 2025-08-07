@@ -4,6 +4,9 @@
 #define CAMERA_HPP
 
 #include <glm/glm.hpp>
+#ifndef __USE_GNU
+#define __USE_GNU
+#endif //__USE_GNU
 #include <cmath>
 #include <string>
 #include "shader.hpp"
